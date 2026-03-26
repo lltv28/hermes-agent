@@ -1,1 +1,0 @@
-web: pip install -e ".[all]" && python -m gateway.run
