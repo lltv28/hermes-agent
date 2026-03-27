@@ -1,6 +1,6 @@
 {
     "$schema": "https://schema.railpack.com",
     "deploy": {
-      "startCommand": "python -m gateway.run"
+      "startCommand": "python start.py"
     }
 }
