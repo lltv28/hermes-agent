@@ -4,17 +4,25 @@ from pathlib import Path
 h = Path(os.environ.get("HERMES_HOME", "/app/.hermes"))
 h.mkdir(parents=True, exist_ok=True)
 
-# Ensure config.yaml has no codex references — purge and rewrite provider settings
+# Write clean config.yaml with correct model/provider
 c = h / "config.yaml"
+import yaml
+cfg = {}
 if c.exists():
-    existing = c.read_text()
-    # Strip any codex provider lines, preserve everything else
-    lines = [l for l in existing.splitlines() if "codex" not in l.lower()]
-    c.write_text("\n".join(lines) + "\n")
-    print("config.yaml cleaned (removed codex)", flush=True)
-else:
-    c.write_text("model: google/gemini-3-flash-preview\nprovider: openrouter\n")
-    print("config.yaml written (fresh)", flush=True)
+    try:
+        cfg = yaml.safe_load(c.read_text()) or {}
+    except Exception:
+        cfg = {}
+# Force correct model and provider
+cfg["model"] = "google/gemini-3-flash-preview"
+cfg["provider"] = "openrouter"
+# Remove any stale codex/gpt-5 references
+for key in list(cfg.keys()):
+    val = str(cfg[key]).lower()
+    if "codex" in val or "gpt-5" in val:
+        del cfg[key]
+c.write_text(yaml.dump(cfg, default_flow_style=False))
+print("config.yaml written, model: google/gemini-3-flash-preview", flush=True)
 
 # Write auth.json with openrouter as active provider
 a = h / "auth.json"
