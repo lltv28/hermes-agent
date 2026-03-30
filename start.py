@@ -1,34 +1,35 @@
-import json, os                                                                
-from pathlib import Path                                                       
+import json, os
+from pathlib import Path
 
 h = Path(os.environ.get("HERMES_HOME", "/app/.hermes"))
 h.mkdir(parents=True, exist_ok=True)
 
+# Only write config.yaml if it doesn't exist (preserve Sage's runtime config)
 c = h / "config.yaml"
-cfg = "model:\n"
-cfg += "  provider: openai-codex\n"
-cfg += "  default: gpt-5.4\n"
-cfg += "  base_url: https://chatgpt.com/backend-api/codex\n"
-c.write_text(cfg)
-print("config.yaml written", flush=True)
+if not c.exists():
+    cfg = "model: google/gemini-3-flash-preview\n"
+    cfg += "provider: openrouter\n"
+    c.write_text(cfg)
+    print("config.yaml written (fresh)", flush=True)
+else:
+    print("config.yaml exists, preserving", flush=True)
 
+# Write auth.json with openrouter as active provider
 a = h / "auth.json"
-rt = os.environ.get("CODEX_REFRESH_TOKEN", "")
+api_key = os.environ.get("OPENROUTER_API_KEY", "")
 auth_data = {
     "version": 1,
     "providers": {
-        "openai-codex": {
+        "openrouter": {
             "tokens": {
-                "access_token": "placeholder",
-                "refresh_token": rt
-            },
-            "auth_mode": "chatgpt"
+                "api_key": api_key
+            }
         }
     },
-    "active_provider": "openai-codex"
+    "active_provider": "openrouter"
 }
 a.write_text(json.dumps(auth_data, indent=2))
-print("auth.json written, rt length: " + str(len(rt)), flush=True)
+print("auth.json written, provider: openrouter", flush=True)
 
 from gateway.run import main
 main()
