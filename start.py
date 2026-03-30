@@ -17,7 +17,7 @@ if c.exists():
 
 # Primary: MiniMax M2.7 via Anthropic-compatible endpoint
 cfg["model"] = {
-    "default": "MiniMax-M2.7",
+    "default": "MiniMax-M2.7-highspeed",
     "provider": "minimax",
     "base_url": "https://api.minimax.io/anthropic",
 }
@@ -36,7 +36,7 @@ cfg["fallback_providers"] = [
 
 # Delegation/subagents also use MiniMax
 cfg.setdefault("delegation", {})
-cfg["delegation"]["model"] = "MiniMax-M2.7"
+cfg["delegation"]["model"] = "MiniMax-M2.7-highspeed"
 cfg["delegation"]["provider"] = "minimax"
 cfg["delegation"]["base_url"] = "https://api.minimax.io/anthropic"
 
