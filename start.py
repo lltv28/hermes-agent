@@ -32,8 +32,8 @@ cfg["fallback_providers"] = [
     },
 ]
 
-# Enable smart model routing: auto-escalate complex tasks to stronger model
-cfg["smart_model_routing"] = True
+# Remove smart_model_routing if it was set as a bool (hermes expects a dict)
+cfg.pop("smart_model_routing", None)
 
 # Delegation/subagents use the strong model
 cfg.setdefault("delegation", {})
