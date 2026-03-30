@@ -40,6 +40,19 @@ cfg["delegation"]["model"] = "MiniMax-M2.7"
 cfg["delegation"]["provider"] = "minimax"
 cfg["delegation"]["base_url"] = "https://api.minimax.io/anthropic"
 
+# Auxiliary tasks (memory, compression, vision, etc.) also use MiniMax
+_aux = {
+    "provider": "minimax",
+    "model": "MiniMax-M2.7-highspeed",
+    "base_url": "https://api.minimax.io/anthropic",
+}
+cfg["auxiliary"] = {
+    "vision": dict(_aux),
+    "web_extract": dict(_aux),
+    "compression": dict(_aux),
+    "approval": dict(_aux),
+}
+
 # Yolo mode — skip all dangerous command approval prompts
 cfg["approvals"] = {"mode": "off"}
 
