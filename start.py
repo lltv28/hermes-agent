@@ -35,10 +35,16 @@ cfg["fallback_providers"] = [
 # Remove smart_model_routing if it was set as a bool (hermes expects a dict)
 cfg.pop("smart_model_routing", None)
 
-# Delegation/subagents use the strong model
+# Delegation/subagents use the strong model via Codex
 cfg.setdefault("delegation", {})
 cfg["delegation"]["model"] = "gpt-5.4"
 cfg["delegation"]["provider"] = "openai-codex"
+cfg["delegation"]["base_url"] = "https://chatgpt.com/backend-api/codex"
+
+# Ensure fallback doesn't inherit the primary model name
+# Each fallback must carry its own model explicitly
+cfg["fallback_model"] = "gpt-5.4"
+cfg["fallback_provider"] = "openai-codex"
 
 # Remove any stale codex-only or gpt-5 references from top-level keys
 for key in list(cfg.keys()):
