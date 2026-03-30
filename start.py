@@ -40,6 +40,9 @@ cfg["delegation"]["model"] = "MiniMax-M2.7"
 cfg["delegation"]["provider"] = "minimax"
 cfg["delegation"]["base_url"] = "https://api.minimax.io/anthropic"
 
+# Yolo mode — skip all dangerous command approval prompts
+cfg["approvals"] = {"mode": "off"}
+
 # Clean up stale keys from previous config
 for stale_key in ("fallback_model", "fallback_provider", "smart_model_routing"):
     cfg.pop(stale_key, None)
