@@ -4,7 +4,7 @@ from pathlib import Path
 h = Path(os.environ.get("HERMES_HOME", "/app/.hermes"))
 h.mkdir(parents=True, exist_ok=True)
 
-# --- config.yaml: Gemini 3 Flash default, smart routing to Codex for complex tasks ---
+# --- config.yaml: MiniMax M2.7 primary, OpenRouter fallback ---
 c = h / "config.yaml"
 import yaml
 
@@ -15,16 +15,18 @@ if c.exists():
     except Exception:
         cfg = {}
 
-# Default: cheap model for most chats
-cfg["model"] = "google/gemini-3-flash-preview"
-cfg["provider"] = "openrouter"
+# Primary: MiniMax M2.7 via Anthropic-compatible endpoint
+cfg["model"] = {
+    "default": "MiniMax-M2.7",
+    "provider": "minimax",
+    "base_url": "https://api.minimax.io/anthropic",
+}
 
-# Fallback chain: Codex OAuth first, then Opus on OpenRouter
+# Fallback chain: Gemini Flash on OpenRouter, then Opus on OpenRouter
 cfg["fallback_providers"] = [
     {
-        "provider": "openai-codex",
-        "model": "gpt-5.4",
-        "base_url": "https://chatgpt.com/backend-api/codex",
+        "provider": "openrouter",
+        "model": "google/gemini-3-flash-preview",
     },
     {
         "provider": "openrouter",
@@ -32,56 +34,36 @@ cfg["fallback_providers"] = [
     },
 ]
 
-# Remove smart_model_routing if it was set as a bool (hermes expects a dict)
-cfg.pop("smart_model_routing", None)
-
-# Delegation/subagents use the strong model via Codex
+# Delegation/subagents also use MiniMax
 cfg.setdefault("delegation", {})
-cfg["delegation"]["model"] = "gpt-5.4"
-cfg["delegation"]["provider"] = "openai-codex"
-cfg["delegation"]["base_url"] = "https://chatgpt.com/backend-api/codex"
+cfg["delegation"]["model"] = "MiniMax-M2.7"
+cfg["delegation"]["provider"] = "minimax"
+cfg["delegation"]["base_url"] = "https://api.minimax.io/anthropic"
 
-# Ensure fallback doesn't inherit the primary model name
-# Each fallback must carry its own model explicitly
-cfg["fallback_model"] = "gpt-5.4"
-cfg["fallback_provider"] = "openai-codex"
-
-# Remove any stale codex-only or gpt-5 references from top-level keys
-for key in list(cfg.keys()):
-    if key in ("model", "provider", "fallback_providers", "smart_model_routing", "delegation"):
-        continue
-    val = str(cfg[key]).lower()
-    if "codex" in val and "openai-codex" not in val:
-        del cfg[key]
+# Clean up stale keys from previous config
+for stale_key in ("fallback_model", "fallback_provider", "smart_model_routing"):
+    cfg.pop(stale_key, None)
 
 c.write_text(yaml.dump(cfg, default_flow_style=False))
-print(f"config.yaml written — default: gemini-3-flash, fallback: codex -> opus", flush=True)
+print(f"config.yaml written — primary: MiniMax-M2.7, fallback: gemini-flash -> opus", flush=True)
 
-# --- auth.json: openrouter as primary, codex as secondary ---
+# --- auth.json: minimax as active provider ---
 a = h / "auth.json"
-api_key = os.environ.get("OPENROUTER_API_KEY", "")
-rt = os.environ.get("CODEX_REFRESH_TOKEN", "")
+or_key = os.environ.get("OPENROUTER_API_KEY", "")
 
 auth_data = {
     "version": 1,
     "providers": {
         "openrouter": {
             "tokens": {
-                "api_key": api_key,
+                "api_key": or_key,
             },
-        },
-        "openai-codex": {
-            "tokens": {
-                "access_token": "placeholder",
-                "refresh_token": rt,
-            },
-            "auth_mode": "chatgpt",
         },
     },
-    "active_provider": "openrouter",
+    "active_provider": "minimax",
 }
 a.write_text(json.dumps(auth_data, indent=2))
-print(f"auth.json written — active: openrouter, codex rt: {len(rt)} chars", flush=True)
+print(f"auth.json written — active: minimax, openrouter fallback: {len(or_key)} chars", flush=True)
 
 from gateway.run import main
 main()
