@@ -4,7 +4,7 @@ from pathlib import Path
 h = Path(os.environ.get("HERMES_HOME", "/app/.hermes"))
 h.mkdir(parents=True, exist_ok=True)
 
-# --- config.yaml: MiniMax M2.7 primary, OpenRouter fallback ---
+# --- config.yaml: Gemini Flash 3 primary on OpenRouter ---
 c = h / "config.yaml"
 import yaml
 
@@ -15,36 +15,27 @@ if c.exists():
     except Exception:
         cfg = {}
 
-# Primary: MiniMax M2.7 via Anthropic-compatible endpoint
-cfg["model"] = {
-    "default": "MiniMax-M2.7-highspeed",
-    "provider": "minimax",
-    "base_url": "https://api.minimax.io/anthropic",
-}
+# Primary: Gemini Flash 3 via OpenRouter
+cfg["model"] = "google/gemini-3-flash-preview"
+cfg["provider"] = "openrouter"
 
-# Fallback chain: Gemini Flash on OpenRouter, then Opus on OpenRouter
+# Fallback chain: Opus on OpenRouter
 cfg["fallback_providers"] = [
-    {
-        "provider": "openrouter",
-        "model": "google/gemini-3-flash-preview",
-    },
     {
         "provider": "openrouter",
         "model": "anthropic/claude-opus-4-6",
     },
 ]
 
-# Delegation/subagents also use MiniMax
+# Delegation/subagents also use Gemini Flash 3
 cfg.setdefault("delegation", {})
-cfg["delegation"]["model"] = "MiniMax-M2.7-highspeed"
-cfg["delegation"]["provider"] = "minimax"
-cfg["delegation"]["base_url"] = "https://api.minimax.io/anthropic"
+cfg["delegation"]["model"] = "google/gemini-3-flash-preview"
+cfg["delegation"]["provider"] = "openrouter"
 
-# Auxiliary tasks (memory, compression, vision, etc.) also use MiniMax
+# Auxiliary tasks (memory, compression, vision, etc.) also use Gemini Flash 3
 _aux = {
-    "provider": "minimax",
-    "model": "MiniMax-M2.7-highspeed",
-    "base_url": "https://api.minimax.io/anthropic",
+    "provider": "openrouter",
+    "model": "google/gemini-3-flash-preview",
 }
 cfg["auxiliary"] = {
     "vision": dict(_aux),
@@ -61,9 +52,9 @@ for stale_key in ("fallback_model", "fallback_provider", "smart_model_routing"):
     cfg.pop(stale_key, None)
 
 c.write_text(yaml.dump(cfg, default_flow_style=False))
-print(f"config.yaml written — primary: MiniMax-M2.7, fallback: gemini-flash -> opus", flush=True)
+print("config.yaml written -- primary: gemini-3-flash, fallback: opus", flush=True)
 
-# --- auth.json: minimax as active provider ---
+# --- auth.json: openrouter as active provider ---
 a = h / "auth.json"
 or_key = os.environ.get("OPENROUTER_API_KEY", "")
 
@@ -76,10 +67,10 @@ auth_data = {
             },
         },
     },
-    "active_provider": "minimax",
+    "active_provider": "openrouter",
 }
 a.write_text(json.dumps(auth_data, indent=2))
-print(f"auth.json written — active: minimax, openrouter fallback: {len(or_key)} chars", flush=True)
+print("auth.json written -- active: openrouter, key: " + str(len(or_key)) + " chars", flush=True)
 
 from gateway.run import main
 main()
